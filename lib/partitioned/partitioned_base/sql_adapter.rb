@@ -90,12 +90,14 @@ module Partitioned
       #  $3 = the parameter 'how_many'
       #
       def last_n_partition_names(how_many = 1)
-        return find(:all,
-                    :from => "pg_tables",
-                    :select => :tablename,
-                    :conditions  => ["schemaname = ?", configurator.schema_name],
-                    :order => last_n_partitions_order_by_clause,
-                    :limit => how_many).map(&:tablename)
+        order_by = (last_n_partitions_order_by_clause.present? ? "ORDER BY #{quote(last_n_partitions_order_by_clause)} DESC" : "")
+        sql = <<-SQL
+          SELECT tablename
+          FROM pg_tables
+          WHERE (schemaname = #{quote(configurator.schema_name)})
+          #{order_by} LIMIT #{how_many.to_i}
+        SQL
+        return exec_query(sql).collect{|a| a["tablename"]}
       end
 
       #
@@ -309,7 +311,7 @@ module Partitioned
       # delegated to the connection of the parent table class
 
       extend Forwardable
-      def_delegators :parent_table_class, :connection, :find_by_sql, :transaction, :find, :configurator
+      def_delegators :parent_table_class, :connection, :find_by_sql, :transaction, :configurator
       def_delegators :connection, :exec_query, :execute, :add_index, :remove_index, :create_schema, :drop_schema, :add_foreign_key,
                      :create_table, :drop_table, :quote
     end

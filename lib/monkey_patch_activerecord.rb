@@ -72,7 +72,7 @@ module ActiveRecord
     # Patch the create_record method to prefetch the primary key if needed
     def create_record(attribute_names = @attributes.keys)
       if self.id.nil? && self.class.respond_to?(:prefetch_primary_key?) && self.class.prefetch_primary_key?
-        self.id = connection.next_sequence_value(self.class.sequence_name)
+        self.id = self.class.connection.next_sequence_value(self.class.sequence_name)
       end
 
       attributes_values = arel_attributes_with_values_for_create(attribute_names)
