@@ -8,8 +8,9 @@ module ActiveRecord::ConnectionAdapters
     describe "check_constraint" do
 
       it "returns an array of constraints" do
-        TableDefinition.new(nil).check_constraint("( id >= 0 and id < 10 )").
-            first.to_sql.should == "CHECK (( id >= 0 and id < 10 ))"
+        constraint = "( id >= 0 and id < 10 )"
+        TableDefinition.new({}, nil, false, {}).check_constraint(constraint).
+            first.type.to_s.should == "CONSTRAINT partition_constraint CHECK (#{constraint})"
       end # returns an array of constraints
 
     end # check_constraint

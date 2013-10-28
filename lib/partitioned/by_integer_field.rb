@@ -20,7 +20,7 @@ module Partitioned
     # the normalized key value for a given key value
     # @return [Integer] the normalized value
     def self.partition_normalize_key_value(integer_field_value)
-      return integer_field_value / partition_table_size * partition_table_size
+      return integer_field_value.to_i / partition_table_size * partition_table_size
     end
 
     def self.partition_generate_range(start_value, end_value, step = :default)

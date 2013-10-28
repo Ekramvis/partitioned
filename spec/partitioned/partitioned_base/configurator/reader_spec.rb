@@ -24,7 +24,7 @@ module Partitioned
         let!(:default_reader) { Partitioned::PartitionedBase::Configurator::Reader.new(Employee) }
         let!(:reader) do
           reader = Partitioned::PartitionedBase::Configurator::Reader.new(Employee)
-          reader.stub!(:configurators).and_return([dsl])
+          reader.stub(:configurators).and_return([dsl])
           reader
         end
 

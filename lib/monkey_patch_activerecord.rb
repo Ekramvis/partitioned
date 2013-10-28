@@ -18,13 +18,13 @@ module ActiveRecord
     # that no changes should be made (since they can't be persisted).
     def destroy
       destroy_associations
-      
+
       if persisted?
         IdentityMap.remove(self) if IdentityMap.enabled?
         pk         = self.class.primary_key
         column     = self.class.columns_hash[pk]
         substitute = connection.substitute_at(column, 0)
-        
+
         if self.class.respond_to?(:dynamic_arel_table)
           using_arel_table = dynamic_arel_table()
           relation = ActiveRecord::Relation.new(self.class, using_arel_table).
@@ -33,46 +33,58 @@ module ActiveRecord
           using_arel_table = self.class.arel_table
           relation = self.class.unscoped.where(using_arel_table[pk].eq(substitute))
         end
-        
+
         relation.bind_values = [[column, id]]
         relation.delete_all
       end
-      
+
       @destroyed = true
       freeze
     end
 
     # Updates the associated record with values matching those of the instance attributes.
     # Returns the number of affected rows.
-    def update(attribute_names = @attributes.keys)
-      attributes_with_values = arel_attributes_values(false, false, attribute_names)
-      return 0 if attributes_with_values.empty?
-      klass = self.class
-      using_arel_table = self.respond_to?(:dynamic_arel_table) ? dynamic_arel_table() : klass.arel_table
-      stmt = klass.unscoped.where(using_arel_table[klass.primary_key].eq(id)).arel.compile_update(attributes_with_values)
-      klass.connection.update stmt
+    def update_record(attribute_names = @attributes.keys)
+      attributes_with_values = arel_attributes_with_values_for_update(attribute_names)
+      if attributes_with_values.empty?
+        0
+      else
+        klass = self.class
+        column_hash = klass.connection.schema_cache.columns_hash klass.table_name
+        db_columns_with_values = attributes_with_values.map { |attr,value|
+          real_column = column_hash[attr.name]
+          [real_column, value]
+        }
+        bind_attrs = attributes_with_values.dup
+        bind_attrs.keys.each_with_index do |column, i|
+          real_column = db_columns_with_values[i].first
+          bind_attrs[column] = klass.connection.substitute_at(real_column, i)
+        end
+        stmt = klass.unscoped.where(klass.arel_table[klass.primary_key].eq(id_was || id)).arel.compile_update(bind_attrs)
+        # use the partitioned table instead of the main table
+        stmt.table(self.class.from_partition(*self.class.partition_key_values(@attributes)).table)
+        klass.connection.update stmt, 'SQL', db_columns_with_values
+      end
     end
 
-    #
-    # patch the create method to prefetch the primary key if needed
-    #
-    def create
+    # Creates a record with values matching those of the instance attributes
+    # and returns its id.
+    # Patch the create_record method to prefetch the primary key if needed
+    def create_record(attribute_names = @attributes.keys)
       if self.id.nil? && self.class.respond_to?(:prefetch_primary_key?) && self.class.prefetch_primary_key?
         self.id = connection.next_sequence_value(self.class.sequence_name)
       end
 
-      attributes_values = arel_attributes_values(!id.nil?)
+      attributes_values = arel_attributes_with_values_for_create(attribute_names)
 
-      new_id = self.class.unscoped.insert attributes_values
+      new_id = self.class.from_partition(*self.class.partition_key_values(@attributes)).insert attributes_values
+      self.id ||= new_id if self.class.primary_key
 
-      self.id ||= new_id
-
-      IdentityMap.add(self) if IdentityMap.enabled?
       @new_record = false
       id
     end
   end
- 
+
   #
   # A patch to QueryMethods to change default behavior of select
   # to use the Relation's Arel::Table.

@@ -88,7 +88,7 @@ module Partitioned
     context "#partition_key_values" do
 
       before do
-        class_partitioned_base.stub!(:partition_keys).and_return([:id])
+        class_partitioned_base.stub(:partition_keys).and_return([:id])
       end
 
       context "call method with key that represented as a string" do
@@ -120,7 +120,7 @@ module Partitioned
             name             text not null
           );
         SQL
-        Employee.stub!(:partition_keys).and_return([:id])
+        Employee.stub(:partition_keys).and_return([:id])
         @employee = Employee.new
       end
 
@@ -129,7 +129,7 @@ module Partitioned
         context "call method with attributes key that represented as a string" do
 
           it "returns employees_partitions.p1" do
-            @employee.stub!(:attributes).and_return("id" => 1)
+            @employee.stub(:attributes).and_return("id" => 1)
             @employee.partition_table_name.should == "employees_partitions.p1"
           end
 
@@ -138,7 +138,7 @@ module Partitioned
         context "call method with attributes key that represented as a symbol" do
 
           it "returns employees_partitions.p2" do
-            @employee.stub!(:attributes).and_return(:id => 2)
+            @employee.stub(:attributes).and_return(:id => 2)
             @employee.partition_table_name.should == "employees_partitions.p2"
           end
 
@@ -151,7 +151,7 @@ module Partitioned
         context "call method with attributes key that represented as a string" do
 
           it "returns arel table name employees_partitions.p1" do
-            @employee.stub!(:attributes).and_return("id" => 1)
+            @employee.stub(:attributes).and_return("id" => 1)
             @employee.dynamic_arel_table.name.should == "employees_partitions.p1"
           end
 
@@ -160,7 +160,7 @@ module Partitioned
         context "call method with attributes key that represented as a symbol" do
 
           it "returns arel table name employees_partitions.p2" do
-            @employee.stub!(:attributes).and_return(:id => 2)
+            @employee.stub(:attributes).and_return(:id => 2)
             @employee.dynamic_arel_table.name.should == "employees_partitions.p2"
           end
 

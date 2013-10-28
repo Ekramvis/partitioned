@@ -13,12 +13,12 @@ module Partitioned
     # @param [Time] time_value the time value to normalize
     # @return [Time] the value normalized
     def self.partition_normalize_key_value(time_value)
-      return time_value.at_beginning_of_week
+      ((time_value.respond_to? :at_beginning_of_week) ? time_value : time_value.to_time).at_beginning_of_week
     end
 
     #
     # The size of the partition table, 7 days (1.week)
-    # 
+    #
     # @return [Integer] the size of this partition
     def self.partition_table_size
       return 1.week

@@ -107,7 +107,7 @@ module Partitioned
       # IMPORTANT: note that lambdas receive, as their first parameter 'model', the most derived class that is being partition.
       # This is not always the same as the class accessible through 'self' because 'self' is evaluated at lambda definition time.
       # Use 'model' for general access to the Partitioned:PartitionedBase model.
-      # 
+      #
       # The follow example shows incorrect access to the model:
       #
       #!bad! class Employee < Partitioned::PartitionBase
@@ -215,7 +215,7 @@ module Partitioned
         #
         # note: this system only applies indexes to leaf child tables because indexes on parent tables,
         # will not be used by the inherited tables (in postgres).
-        # 
+        #
         def index(field, options = {})
           if field.is_a? Proc
             data.indexes << field
@@ -380,7 +380,7 @@ module Partitioned
         #   partitioned do |partition|
         #     partition.schema_name '#{model.table_name}_partitions'
         #   end
-        # 
+        #
         # the default is similar to the second usage: TABLENAME_partitions, for a table named 'foos' the schema name will be
         # foos_partitions
         #
@@ -422,7 +422,7 @@ module Partitioned
         #   partitioned do |partition|
         #     partition.name_prefix '#{model.table_name}_child_'
         #   end
-        # 
+        #
         # the default is 'p'
         #
         def name_prefix(value)

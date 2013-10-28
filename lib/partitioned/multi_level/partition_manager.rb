@@ -28,7 +28,7 @@ module Partitioned
       def create_new_partition(*partition_key_values)
         create_partition_table(*partition_key_values)
         if is_leaf_partition?(*partition_key_values)
-          add_partition_table_index(*partition_key_values)  
+          add_partition_table_index(*partition_key_values)
           add_references_to_partition_table(*partition_key_values)
         else
           add_parent_table_rules(*partition_key_values)

@@ -102,7 +102,7 @@ shared_examples_for "check that basic operations with postgres works correctly f
 
     it "returns empty array" do
       subject.delete(1)
-      subject.find(:all).should == []
+      subject.all.should == []
     end
 
   end # when try to delete a record with id = 1

@@ -125,7 +125,7 @@ module Partitioned
       context "checks data in the check_constraint, when partition_table_size != 1" do
 
         before do
-          @employee.stub!(:partition_table_size).and_return(2)
+          @employee.stub(:partition_table_size).and_return(2)
         end
 
         it "returns check_constraint" do

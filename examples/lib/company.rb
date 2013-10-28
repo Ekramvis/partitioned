@@ -1,6 +1,6 @@
 class Company < ActiveRecord::Base
   extend BulkMethodsMixin
-  has_many :employees, :class_name => 'Company', :conditions => "companies.id = employees.companies_id"
+  has_many :employees, -> { where "companies.id = employees.companies_id" } :class_name => 'Company'
 
   connection.execute <<-SQL
     create table companies

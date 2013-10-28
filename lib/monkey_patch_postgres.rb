@@ -18,7 +18,9 @@ module ActiveRecord::ConnectionAdapters
     #
     # @param [String] constraint a SQL constraint
     def check_constraint(constraint)
-      column(nil, "CONSTRAINT partition_constraint CHECK #{constraint}")
+      # TODO: this is a dirty workaround, find a better one.
+      column(nil, "CONSTRAINT partition_constraint CHECK (#{constraint})")
+      columns
     end
   end
 

@@ -57,13 +57,13 @@ module Partitioned
       # Does a specific child partition exist.
       #
       def partition_exists?(*partition_key_values)
-        return find(:first,
-                    :from => "pg_tables",
-                    :select => "count(*) as count",
-                    :conditions  => ["schemaname = ? and tablename = ?",
-                                      configurator.schema_name,
-                                      configurator.part_name(*partition_key_values)
-                    ]).count.to_i == 1
+        sql = <<-SQL
+          SELECT count(*) as count
+          FROM pg_tables
+          WHERE (schemaname = #{quote(configurator.schema_name)} and tablename = #{quote(configurator.part_name(*partition_key_values))})
+          LIMIT 1
+        SQL
+        return exec_query(sql).first["count"].to_i == 1
       end
 
       #
@@ -310,8 +310,8 @@ module Partitioned
 
       extend Forwardable
       def_delegators :parent_table_class, :connection, :find_by_sql, :transaction, :find, :configurator
-      def_delegators :connection, :execute, :add_index, :remove_index, :create_schema, :drop_schema, :add_foreign_key,
-                     :create_table, :drop_table
+      def_delegators :connection, :exec_query, :execute, :add_index, :remove_index, :create_schema, :drop_schema, :add_foreign_key,
+                     :create_table, :drop_table, :quote
     end
   end
 end
