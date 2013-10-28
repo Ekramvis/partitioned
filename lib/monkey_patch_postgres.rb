@@ -18,7 +18,7 @@ module ActiveRecord::ConnectionAdapters
     #
     # @param [String] constraint a SQL constraint
     def check_constraint(constraint)
-      @columns << Struct.new(:to_sql).new("CHECK (#{constraint})")
+      column(nil, "CONSTRAINT partition_constraint CHECK #{constraint}")
     end
   end
 
@@ -29,6 +29,16 @@ module ActiveRecord::ConnectionAdapters
   # to take advantage of these SQL builders.
   #
   class PostgreSQLAdapter < AbstractAdapter
+
+
+    # Patches quoting mechanism to so we can inject constraint definitions
+    # without nameless columns
+    def quote_column_name name
+      return nil if name.blank?
+      super
+    end
+
+
     def partitioned_sql_adapter(model)
       return Partitioned::PartitionedBase::SqlAdapter.new(model)
     end
