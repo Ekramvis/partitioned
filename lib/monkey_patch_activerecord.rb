@@ -14,37 +14,25 @@ module ActiveRecord
   # Patches for Persistence to allow certain partitioning (that related to the primary key) to work.
   #
   module Persistence
-    # Deletes the record in the database and freezes this instance to reflect
-    # that no changes should be made (since they can't be persisted).
-    def destroy
-      destroy_associations
+    alias_method :original_relation_for_destroy, :relation_for_destroy
+    def relation_for_destroy
+      return original_destroy unless partioned?
+      using_arel_table = dynamic_arel_table()
+      pk         = self.class.primary_key
+      column     = self.class.columns_hash[pk]
+      substitute = self.class.connection.substitute_at(column, 0)
 
-      if persisted?
-        IdentityMap.remove(self) if IdentityMap.enabled?
-        pk         = self.class.primary_key
-        column     = self.class.columns_hash[pk]
-        substitute = connection.substitute_at(column, 0)
-
-        if self.class.respond_to?(:dynamic_arel_table)
-          using_arel_table = dynamic_arel_table()
-          relation = ActiveRecord::Relation.new(self.class, using_arel_table).
-            where(using_arel_table[pk].eq(substitute))
-        else
-          using_arel_table = self.class.arel_table
-          relation = self.class.unscoped.where(using_arel_table[pk].eq(substitute))
-        end
-
-        relation.bind_values = [[column, id]]
-        relation.delete_all
-      end
-
-      @destroyed = true
-      freeze
+      relation = ActiveRecord::Relation.new(self.class, using_arel_table)
+        .where(using_arel_table[pk].eq(substitute))
+      relation.bind_values = [[column, id]]
+      relation
     end
 
     # Updates the associated record with values matching those of the instance attributes.
     # Returns the number of affected rows.
+    alias_method :original_update_record, :update_record
     def update_record(attribute_names = @attributes.keys)
+      return original_update_record(attribute_names) unless partioned?
       attributes_with_values = arel_attributes_with_values_for_update(attribute_names)
       if attributes_with_values.empty?
         0
@@ -70,7 +58,10 @@ module ActiveRecord
     # Creates a record with values matching those of the instance attributes
     # and returns its id.
     # Patch the create_record method to prefetch the primary key if needed
+    alias_method :original_create_record, :create_record
     def create_record(attribute_names = @attributes.keys)
+      return original_create_record(attribute_names) unless partioned?
+
       if self.id.nil? && self.class.respond_to?(:prefetch_primary_key?) && self.class.prefetch_primary_key?
         self.id = self.class.connection.next_sequence_value(self.class.sequence_name)
       end
@@ -83,23 +74,10 @@ module ActiveRecord
       @new_record = false
       id
     end
-  end
 
-  #
-  # A patch to QueryMethods to change default behavior of select
-  # to use the Relation's Arel::Table.
-  #
-  module QueryMethods
-
-    def build_select(arel, selects)
-      unless selects.empty?
-        @implicit_readonly = false
-        arel.project(*selects)
-      else
-        arel.project(table[Arel.star])
-      end
+    def partioned?
+      self.class < Partitioned::PartitionedBase
     end
-
   end
 
   #
@@ -114,7 +92,10 @@ module ActiveRecord
     #
     # The differences between this and the original code are small and marked
     # with PARTITIONED comment.
+    alias_method :original_insert, :insert
     def insert(values)
+      partioned = self < Partitioned::PartitionedBase
+      return original_insert(values) unless partioned
       primary_key_value = nil
 
       if primary_key && Hash === values

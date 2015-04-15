@@ -25,6 +25,11 @@ provides streamlined targeted access to the desired data.
 Support for bulk inserts and bulk updates is also provided via
 Partitioned::Base.create_many and Partitioned::Base.update_many.
 
+# About this fork
+
+This repo is a continuation of the fiksu/partitioned project. Our mission is to keep partioned alive
+and moving forward, with maintenance fixes and new features.
+
 ## Example
 
 
