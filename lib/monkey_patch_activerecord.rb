@@ -30,9 +30,7 @@ module ActiveRecord
 
     # Updates the associated record with values matching those of the instance attributes.
     # Returns the number of affected rows.
-    alias_method :original_update_record, :update_record
     def update_record(attribute_names = @attributes.keys)
-      return original_update_record(attribute_names) unless partioned?
       attributes_with_values = arel_attributes_with_values_for_update(attribute_names)
       if attributes_with_values.empty?
         0
@@ -49,8 +47,7 @@ module ActiveRecord
           bind_attrs[column] = klass.connection.substitute_at(real_column, i)
         end
         stmt = klass.unscoped.where(klass.arel_table[klass.primary_key].eq(id_was || id)).arel.compile_update(bind_attrs)
-        # use the partitioned table instead of the main table
-        stmt.table(self.class.from_partition(*self.class.partition_key_values(@attributes)).table)
+        stmt.table(self.class.from_partition(*self.class.partition_key_values(@attributes)).table) if partioned?
         klass.connection.update stmt, 'SQL', db_columns_with_values
       end
     end
@@ -58,17 +55,18 @@ module ActiveRecord
     # Creates a record with values matching those of the instance attributes
     # and returns its id.
     # Patch the create_record method to prefetch the primary key if needed
-    alias_method :original_create_record, :create_record
     def create_record(attribute_names = @attributes.keys)
-      return original_create_record(attribute_names) unless partioned?
-
       if self.id.nil? && self.class.respond_to?(:prefetch_primary_key?) && self.class.prefetch_primary_key?
         self.id = self.class.connection.next_sequence_value(self.class.sequence_name)
       end
 
       attributes_values = arel_attributes_with_values_for_create(attribute_names)
 
-      new_id = self.class.from_partition(*self.class.partition_key_values(@attributes)).insert attributes_values
+      new_id = if partioned?
+        self.class.from_partition(*self.class.partition_key_values(@attributes)).insert attributes_values
+      else
+        self.class.unscoped.insert attributes_values
+      end
       self.id ||= new_id if self.class.primary_key
 
       @new_record = false
