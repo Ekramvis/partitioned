@@ -16,7 +16,6 @@ module ActiveRecord
   module Persistence
     alias_method :original_relation_for_destroy, :relation_for_destroy
     def relation_for_destroy
-      return original_destroy unless partioned?
       using_arel_table = dynamic_arel_table()
       pk         = self.class.primary_key
       column     = self.class.columns_hash[pk]
